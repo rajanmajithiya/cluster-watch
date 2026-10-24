@@ -6,7 +6,8 @@ export function createMemoryAlertStore() {
 
   return {
     async list({ status } = {}) {
-      return status ? alerts.filter(a => a.status === status) : [...alerts];
+      const result = status ? alerts.filter(a => a.status === status) : [...alerts];
+      return result.reverse();    // newest first, same contract as the Postgres store
     },
 
     async get(id) {

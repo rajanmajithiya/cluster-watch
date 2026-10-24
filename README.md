@@ -23,9 +23,13 @@ Built as a production-style learning project: Node.js · Express · PostgreSQL �
 
 ```bash
 npm install
-npm run dev        # auto-restart on change
-npm test           # node's built-in test runner
+npm run db         # local PostgreSQL on :5433 (embedded, no Docker needed)
+DATABASE_URL=postgres://clusterwatch:clusterwatch@localhost:5433/clusterwatch npm run dev
+npm test           # contract tests: memory store always, Postgres store when the DB is up
 ```
+
+Without `DATABASE_URL` the API falls back to an in-memory store. On startup it waits for the
+database (exponential backoff) and applies pending `migrations/*.sql` under an advisory lock.
 
 ## API
 
@@ -45,5 +49,7 @@ npm test           # node's built-in test runner
 | `PORT`                | `3000`        |
 | `NODE_ENV`            | `development` |
 | `SHUTDOWN_TIMEOUT_MS` | `10000`       |
+| `DATABASE_URL`        | unset → in-memory store |
+| `DB_POOL_MAX`         | `10`          |
 
 Learning notes and interview questions per lesson live in [`docs/lessons`](docs/lessons).

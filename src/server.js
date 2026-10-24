@@ -1,21 +1,36 @@
 import config from './config.js';
 import { createApp } from './app.js';
 import { createMemoryAlertStore } from './store/memoryAlertStore.js';
+import { createPostgresAlertStore } from './store/postgresAlertStore.js';
+import { createPool, waitForDatabase } from './db/pool.js';
+import { migrate } from './db/migrate.js';
 
-const store = createMemoryAlertStore();
+let pool;
+let store;
+if (config.databaseUrl) {
+  pool = createPool(config.databaseUrl, { max: config.dbPoolMax });
+  await waitForDatabase(pool);
+  await migrate(pool);
+  store = createPostgresAlertStore(pool);
+} else {
+  console.warn('DATABASE_URL not set: using in-memory store, data will be lost on restart');
+  store = createMemoryAlertStore();
+}
+
 const app = createApp({ store });
 
 const server = app.listen(config.port, () => {
-  console.log(`ClusterWatch (${config.env}) listening on http://localhost:${config.port}`);
+  console.log(`ClusterWatch (${config.env}, ${pool ? 'postgres' : 'memory'}) listening on http://localhost:${config.port}`);
 });
 
 // Graceful shutdown. Kubernetes sends SIGTERM before killing a pod (and Ctrl+C sends SIGINT).
-// We stop accepting new connections, let in-flight requests finish, then exit.
+// We stop accepting new connections, let in-flight requests finish, close the DB pool, then exit.
 // If that takes too long, we force-exit so the deploy doesn't hang.
 function shutdown(signal) {
   console.log(`${signal} received, shutting down gracefully`);
   app.markShuttingDown();                     // /readyz now returns 503
-  server.close(() => {
+  server.close(async () => {
+    await pool?.end();                        // close DB connections only after the last request finished
     console.log('all connections closed, bye');
     process.exit(0);
   });
