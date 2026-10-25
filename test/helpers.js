@@ -10,7 +10,13 @@ async function probeDb() {
 }
 
 // Pass as { skip: pgSkip } so Postgres suites skip (instead of fail) when no DB is running.
-export const pgSkip = (await probeDb()) ? false : `Postgres not reachable at ${TEST_DB} (run "npm run db")`;
+// But NOT in CI: there a skipped suite would show a green build that never tested the database.
+// GitHub Actions sets CI=true, so a missing DB fails the run loudly instead.
+const dbUp = await probeDb();
+if (!dbUp && process.env.CI) {
+  throw new Error(`CI=true but Postgres is not reachable at ${TEST_DB}; refusing to skip database tests`);
+}
+export const pgSkip = dbUp ? false : `Postgres not reachable at ${TEST_DB} (run "npm run db")`;
 
 // Fresh, migrated, empty database for a test file.
 export async function freshPool(max = 5) {
