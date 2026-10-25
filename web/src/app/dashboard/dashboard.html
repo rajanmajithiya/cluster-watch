@@ -5,6 +5,7 @@
       <span>Updated {{ at | date: 'HH:mm:ss' }}</span>
     }
     <button type="button" (click)="refresh()">Refresh</button>
+    <app-sign-in />
   </div>
 </header>
 
@@ -36,7 +37,9 @@
           <p>{{ alert.reason }}</p>
           <small class="muted">since {{ alert.createdAt | date: 'MMM d, HH:mm:ss' }}</small>
         </div>
-        <button type="button" (click)="resolve(alert)">Resolve</button>
+        @if (auth.signedIn()) {
+          <button type="button" (click)="resolve(alert)">Resolve</button>
+        }
       </article>
     } @empty {
       <p class="muted">No open alerts. All quiet.</p>
@@ -61,8 +64,10 @@
             <td>{{ t.lastLatencyMs === null ? '–' : t.lastLatencyMs + ' ms' }}</td>
             <td>{{ t.lastError ?? t.lastStatusCode ?? '–' }}</td>
             <td class="actions">
-              <button type="button" (click)="toggle(t)">{{ t.enabled ? 'Pause' : 'Resume' }}</button>
-              <button type="button" class="danger" (click)="remove(t)">Delete</button>
+              @if (auth.signedIn()) {
+                <button type="button" (click)="toggle(t)">{{ t.enabled ? 'Pause' : 'Resume' }}</button>
+                <button type="button" class="danger" (click)="remove(t)">Delete</button>
+              }
             </td>
           </tr>
         } @empty {
@@ -75,5 +80,9 @@
 
 <section>
   <h2>Add target</h2>
-  <app-target-form (created)="refresh()" />
+  @if (auth.signedIn()) {
+    <app-target-form (created)="refresh()" />
+  } @else {
+    <p class="muted">Read-only view. Sign in with the admin token to add targets, pause them, or resolve alerts.</p>
+  }
 </section>

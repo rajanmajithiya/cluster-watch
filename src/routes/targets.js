@@ -39,7 +39,7 @@ function validateNewTarget(body = {}) {
   return target;
 }
 
-export function targetsRouter(store) {
+export function targetsRouter(store, { policy, maxTargets = 100 } = {}) {
   const router = Router();
 
   router.get('/', async (req, res) => {
@@ -47,7 +47,18 @@ export function targetsRouter(store) {
   });
 
   router.post('/', async (req, res) => {
-    const target = await store.create(validateNewTarget(req.body));
+    const input = validateNewTarget(req.body);
+    // SSRF policy: refuse internal addresses up front with a clear message. (The worker checks again at
+    // connect time, because DNS answers can change after registration.)
+    await policy?.check(input.url).catch(err => {
+      throw new HttpError(400, 'validation failed', [`url is not allowed: ${err.message}`]);
+    });
+    // Every target costs a check every few seconds. A cap keeps one user (or one script) from turning
+    // the worker into a request cannon.
+    if ((await store.count()) >= maxTargets) {
+      throw new HttpError(409, `target limit reached (${maxTargets}); delete one first`);
+    }
+    const target = await store.create(input);
     res.status(201).location(`/api/targets/${target.id}`).json(target);
   });
 

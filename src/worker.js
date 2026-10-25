@@ -3,6 +3,8 @@ import config from './config.js';
 import { createPool, waitForDatabase } from './db/pool.js';
 import { migrate } from './db/migrate.js';
 import { createMonitor } from './monitor/monitor.js';
+import { probe } from './monitor/probe.js';
+import { createTargetPolicy } from './monitor/ssrf.js';
 
 // The worker is a SEPARATE process from the API, so each can be scaled and restarted independently.
 // A slow check storm can't eat the API's event loop or its DB connections.
@@ -14,7 +16,16 @@ if (!config.databaseUrl) {
 const pool = createPool(config.databaseUrl, { max: config.workerBatchSize + 2 });
 await waitForDatabase(pool);
 await migrate(pool);
-const monitor = createMonitor({ pool, batchSize: config.workerBatchSize, retentionHours: config.checkRetentionHours });
+// The SSRF policy is enforced HERE, at connect time, for every check: this process is the one that actually
+// opens connections. The API's check at registration is only for a friendly error message.
+const policy = createTargetPolicy({ blockPrivate: config.blockPrivateTargets, allowedHosts: config.allowedPrivateHosts });
+if (policy.enabled) console.log(`SSRF guard on: private addresses blocked (allowed hosts: ${config.allowedPrivateHosts.join(', ') || 'none'})`);
+const monitor = createMonitor({
+  pool,
+  batchSize: config.workerBatchSize,
+  retentionHours: config.checkRetentionHours,
+  probe: (url, options) => probe(url, { ...options, policy }),
+});
 
 let running = true;
 let lastLoopAt = Date.now();

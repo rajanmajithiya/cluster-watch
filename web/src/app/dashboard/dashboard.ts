@@ -5,6 +5,8 @@ import { RouterLink } from '@angular/router';
 import { catchError, filter, forkJoin, map, merge, Observable, of, scan, Subject, switchMap, timer } from 'rxjs';
 import { ApiService, describeError } from '../api.service';
 import { Alert, Target } from '../models';
+import { AuthService } from '../auth.service';
+import { SignIn } from '../sign-in/sign-in';
 import { TargetForm } from '../target-form/target-form';
 
 export const POLL_MS = 5000;
@@ -18,12 +20,13 @@ interface View {
 
 @Component({
   selector: 'app-dashboard',
-  imports: [DatePipe, RouterLink, TargetForm],
+  imports: [DatePipe, RouterLink, SignIn, TargetForm],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
 })
 export class Dashboard {
   private readonly api = inject(ApiService);
+  protected readonly auth = inject(AuthService);   // write controls only render when signed in
   private readonly refresh$ = new Subject<void>();   // "refresh now", e.g. after the user changes something
   protected readonly actionError = signal<string | null>(null);   // a signal: see target-form.ts
 

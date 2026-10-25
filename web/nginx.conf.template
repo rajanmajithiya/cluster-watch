@@ -3,6 +3,8 @@
 server {
   listen 8080;
   root /usr/share/nginx/html;
+  server_tokens off;                  # don't announce the nginx version
+  client_max_body_size 100k;          # same cap as the API; reject huge bodies at the edge
 
   # Liveness/readiness for Kubernetes; doesn't touch the API.
   location = /healthz {
@@ -17,6 +19,7 @@ server {
     proxy_set_header Host $host;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Request-Id $request_id;   # one id per request, logged by the API, echoed to the browser
     proxy_connect_timeout 3s;
     proxy_read_timeout 15s;
   }

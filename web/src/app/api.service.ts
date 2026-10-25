@@ -51,6 +51,8 @@ export class ApiService {
 export function describeError(err: unknown): string {
   if (!(err instanceof HttpErrorResponse)) return 'Unexpected error';
   if (err.status === 0) return 'Cannot reach the API (network error, CORS, or server down)';
+  if (err.status === 401) return 'Not signed in, or the token is wrong';
+  if (err.status === 429) return 'Too many attempts. Wait a few minutes and try again';
   const body = err.error as { error?: string; details?: string[] } | null;
   const detail = body?.details?.filter(Boolean).join('; ');
   return [body?.error ?? `HTTP ${err.status}`, detail].filter(Boolean).join(': ');

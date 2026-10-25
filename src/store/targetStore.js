@@ -13,6 +13,11 @@ export function createTargetStore(pool) {
       return rows;
     },
 
+    async count() {
+      const { rows: [{ n }] } = await pool.query('SELECT count(*)::int AS n FROM targets');
+      return n;
+    },
+
     async get(id) {
       const { rows } = await pool.query(`SELECT ${COLUMNS} FROM targets WHERE id = $1`, [id]);
       return rows[0];

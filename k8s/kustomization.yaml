@@ -18,9 +18,9 @@ labels:
 # One place to bump the version for every Deployment.
 images:
   - name: clusterwatch
-    newTag: 0.8.0
+    newTag: 0.9.0
   - name: clusterwatch-web
-    newTag: 0.8.0
+    newTag: 0.9.0
 
 # Generators append a content hash to the name (clusterwatch-config-7h2k9...). Changing a value
 # creates a NEW ConfigMap name, the Deployment spec changes, and Kubernetes rolls the pods automatically.
@@ -33,6 +33,9 @@ configMapGenerator:
       - WORKER_POLL_MS=1000
       - WORKER_BATCH_SIZE=20
       - CHECK_RETENTION_HOURS=24
+      - BLOCK_PRIVATE_TARGETS=true
+      - ALLOWED_PRIVATE_HOSTS=demo-targets,demo-targets.clusterwatch.svc.cluster.local
+      - MAX_TARGETS=50
 
 # DEV ONLY. Never commit real credentials. In production the Secret comes from a secret manager
 # (External Secrets Operator + AWS Secrets Manager / Azure Key Vault / GCP Secret Manager, or Sealed Secrets).

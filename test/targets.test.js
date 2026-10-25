@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { createApp } from '../src/app.js';
 import { createPostgresAlertStore } from '../src/store/postgresAlertStore.js';
 import { createTargetStore } from '../src/store/targetStore.js';
+import { createTargetPolicy } from '../src/monitor/ssrf.js';
 import { pgSkip, freshPool, listen } from './helpers.js';
 
 describe('targets API (postgres)', { skip: pgSkip }, () => {
@@ -40,6 +41,32 @@ describe('targets API (postgres)', { skip: pgSkip }, () => {
     for (const url of ['http://169.254.169.254/latest/meta-data/', 'http://metadata.google.internal/', 'file:///etc/passwd', 'not a url']) {
       const res = await send('POST', '/api/targets', { name: `evil-${url.length}`, url });
       assert.equal(res.status, 400, url);
+    }
+  });
+
+  test('with the SSRF guard on: internal URLs refused at registration; target cap enforced', async () => {
+    const { count } = (await pool.query('SELECT count(*)::int AS count FROM targets')).rows[0];
+    const guarded = await listen(createApp({
+      store: createPostgresAlertStore(pool),
+      targetStore: createTargetStore(pool),
+      targetPolicy: createTargetPolicy({ blockPrivate: true }),
+      maxTargets: count + 1,
+    }));
+    const post = body => fetch(`${guarded.base}/api/targets`, {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),
+    });
+    try {
+      for (const url of ['http://192.168.1.1/', 'http://localhost:5433/', 'http://10.0.0.5:8080/']) {
+        const res = await post({ name: `internal-${url.length}`, url });
+        assert.equal(res.status, 400, url);
+        assert.match((await res.json()).details.join(), /not allowed: .*blocked internal address/);
+      }
+      assert.equal((await post({ name: 'public-1', url: 'http://8.8.8.8/' })).status, 201);
+      const full = await post({ name: 'public-2', url: 'http://1.1.1.1/' });
+      assert.equal(full.status, 409);
+      assert.match((await full.json()).error, /target limit reached/);
+    } finally {
+      await guarded.close();
     }
   });
 

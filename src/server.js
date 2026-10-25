@@ -5,6 +5,14 @@ import { createPostgresAlertStore } from './store/postgresAlertStore.js';
 import { createTargetStore } from './store/targetStore.js';
 import { createPool, waitForDatabase } from './db/pool.js';
 import { migrate } from './db/migrate.js';
+import { createTargetPolicy } from './monitor/ssrf.js';
+
+// Fail closed: a production API without a token would let anyone change everything.
+// Better to refuse to start (loud, obvious) than to run wide open (silent, dangerous).
+if (config.env === 'production' && !config.adminToken) {
+  console.error('ADMIN_TOKEN must be set when NODE_ENV=production; refusing to start with open writes');
+  process.exit(1);
+}
 
 let pool;
 let store;
@@ -20,7 +28,15 @@ if (config.databaseUrl) {
   store = createMemoryAlertStore();
 }
 
-const app = createApp({ store, targetStore });
+const app = createApp({
+  store,
+  targetStore,
+  adminToken: config.adminToken,
+  targetPolicy: createTargetPolicy({ blockPrivate: config.blockPrivateTargets, allowedHosts: config.allowedPrivateHosts }),
+  maxTargets: config.maxTargets,
+  trustProxy: config.trustProxy,
+  log: line => console.log(line),
+});
 
 const server = app.listen(config.port, () => {
   console.log(`ClusterWatch (${config.env}, ${pool ? 'postgres' : 'memory'}) listening on http://localhost:${config.port}`);

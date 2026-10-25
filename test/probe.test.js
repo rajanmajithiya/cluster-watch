@@ -22,8 +22,9 @@ test('2xx is healthy and reports latency', async () => {
   assert.equal(typeof r.latencyMs, 'number');
 });
 
-test('redirects are followed', async () => {
-  assert.equal((await probe(`${target.base}/redirect`, { timeoutMs: 1000 })).ok, true);
+test('a redirect counts as up and is NOT followed (SSRF safety, Lesson 9)', async () => {
+  const r = await probe(`${target.base}/redirect`, { timeoutMs: 1000 });
+  assert.deepEqual([r.ok, r.statusCode], [true, 302]);
 });
 
 test('5xx is unhealthy', async () => {

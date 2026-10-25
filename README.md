@@ -21,11 +21,24 @@ Built as a production-style learning project: Node.js · Express · PostgreSQL �
           all packaged as Docker images, run on Kubernetes, built by CI
 ```
 
+## Go public (optional)
+
+```bash
+node -e "console.log('ADMIN_TOKEN=' + require('crypto').randomBytes(32).toString('base64url'))" > .env   # once; gitignored
+docker compose --profile public up -d --build --wait     # adds a Cloudflare quick tunnel
+docker compose logs cloudflared | grep trycloudflare.com # the public URL
+set -a; source .env; set +a; bash scripts/smoke-test.sh https://<url>   # post-deploy checks
+```
+
+Reads are public; writes need the admin token (dashboard: **Sign in**). The worker refuses private/internal
+addresses (SSRF guard). Details: [docs/lessons/09-go-live.md](docs/lessons/09-go-live.md).
+
 ## Run on Kubernetes
 
 ```bash
-docker build -t clusterwatch:0.6.2 .
-bash scripts/k8s-load-image.sh clusterwatch:0.6.2      # Docker Desktop dev cluster only; real clusters pull from a registry
+docker build -t clusterwatch:0.9.0 .
+bash scripts/k8s-load-image.sh clusterwatch:0.9.0
+kubectl create secret generic clusterwatch-admin -n clusterwatch --from-env-file=.env   # admin token, never in Git      # Docker Desktop dev cluster only; real clusters pull from a registry
 kubectl apply -k k8s/                                  # namespace, postgres, api (2), worker (2)
 kubectl port-forward -n clusterwatch svc/web 8080:80   # dashboard at http://localhost:8080
 ```
@@ -93,5 +106,10 @@ Target endpoints require `DATABASE_URL`.
 | `WORKER_BATCH_SIZE`   | `20`          |
 | `WORKER_HEALTH_PORT`  | `3001`        |
 | `CHECK_RETENTION_HOURS` | `24`        |
+| `ADMIN_TOKEN`         | unset → writes open; **required** when `NODE_ENV=production` |
+| `BLOCK_PRIVATE_TARGETS` | `false` (compose/k8s set `true`) |
+| `ALLOWED_PRIVATE_HOSTS` | empty; comma-separated hostnames exempt from the SSRF guard |
+| `MAX_TARGETS`         | `100`         |
+| `TRUST_PROXY`         | loopback + private ranges |
 
 Learning notes and interview questions per lesson live in [`docs/lessons`](docs/lessons).
