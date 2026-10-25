@@ -28,9 +28,12 @@ describe('targets API (postgres)', { skip: pgSkip }, () => {
     );
   });
 
-  test('duplicate name → 409 Conflict', async () => {
+  test('duplicate name → 409 Conflict with a human message, no DB internals', async () => {
     const res = await send('POST', '/api/targets', { name: 'payments', url: 'http://other.local' });
     assert.equal(res.status, 409);
+    const body = await res.json();
+    assert.deepEqual(body.details, ['a target with this name already exists']);
+    assert.doesNotMatch(JSON.stringify(body), /Key \(|\(name\)=/);
   });
 
   test('SSRF: cloud metadata and non-http URLs are rejected', async () => {

@@ -1,0 +1,15 @@
+h1 { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
+.summary { display: flex; gap: 1rem; flex-wrap: wrap; margin: 1rem 0; }
+.stat { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: .75rem 1rem; }
+.stat .num { display: block; font-size: 1.6rem; font-weight: 700; }
+.bars { display: flex; align-items: flex-end; gap: 2px; height: 80px; background: var(--card);
+  border: 1px solid var(--line); border-radius: 8px; padding: .5rem; overflow: hidden; }
+.bars span { flex: 1; min-width: 2px; min-height: 2px; background: var(--good); border-radius: 1px; }
+.bars span.fail { background: var(--bad); }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); }
+th, td { text-align: left; padding: .45rem .75rem; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { font-size: .8rem; text-transform: uppercase; color: var(--muted); }
+.badge { display: inline-block; border-radius: 999px; padding: .1rem .5rem; font-size: .8rem; font-weight: 600; background: var(--line); }
+.badge[data-state='up'] { background: var(--good-bg); color: var(--good); }
+.badge[data-state='down'] { background: var(--bad-bg); color: var(--bad); }

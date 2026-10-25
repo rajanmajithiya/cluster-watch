@@ -27,7 +27,7 @@ Built as a production-style learning project: Node.js · Express · PostgreSQL �
 docker build -t clusterwatch:0.6.2 .
 bash scripts/k8s-load-image.sh clusterwatch:0.6.2      # Docker Desktop dev cluster only; real clusters pull from a registry
 kubectl apply -k k8s/                                  # namespace, postgres, api (2), worker (2)
-kubectl port-forward -n clusterwatch svc/api 3000:80
+kubectl port-forward -n clusterwatch svc/web 8080:80   # dashboard at http://localhost:8080
 ```
 
 See [docs/lessons/06-kubernetes.md](docs/lessons/06-kubernetes.md) for operating and debugging it.
@@ -35,12 +35,17 @@ See [docs/lessons/06-kubernetes.md](docs/lessons/06-kubernetes.md) for operating
 ## Run with Docker
 
 ```bash
-docker compose up -d --build --wait   # postgres + api (:3000) + 2 workers + demo-targets (:4000)
+docker compose up -d --build --wait   # dashboard (:8080) + api (:3000) + 2 workers + postgres + demo-targets (:4000)
 docker compose logs -f worker
 docker compose down                   # add -v to also delete the database volume
 ```
 
 Inside compose, register targets by service name, e.g. `http://demo-targets:4000/switch`.
+
+## Dashboard (Angular)
+
+`web/` is an Angular 22 app served by nginx, which also proxies `/api` to the API (same origin, no CORS).
+Dev mode: `cd web && npm start` (http://localhost:4200, needs the API on :3000). Tests: `cd web && npx ng test --watch=false`.
 
 ## Run locally (without Docker)
 

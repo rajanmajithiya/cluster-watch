@@ -1,0 +1,47 @@
+# Rendered at container start: the nginx image runs envsubst on /etc/nginx/templates/*.template, replacing
+# ${API_UPSTREAM} (only variables that exist in the environment; nginx's own $host etc. are left alone).
+server {
+  listen 8080;
+  root /usr/share/nginx/html;
+
+  # Liveness/readiness for Kubernetes; doesn't touch the API.
+  location = /healthz {
+    access_log off;
+    default_type text/plain;
+    return 200 'ok';
+  }
+
+  # Same-origin API: the browser calls /api/... on THIS server; nginx forwards it. No CORS anywhere.
+  location /api/ {
+    proxy_pass ${API_UPSTREAM};
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_connect_timeout 3s;
+    proxy_read_timeout 15s;
+  }
+
+  # Security headers on every page response. (add_header in a location block REPLACES these, so pages repeat them.)
+  add_header X-Content-Type-Options nosniff always;
+  add_header X-Frame-Options DENY always;                         # no clickjacking via <iframe>
+  add_header Referrer-Policy strict-origin-when-cross-origin always;
+
+  # Build output files have a content hash in their name (main-LSDBZYNE.js): a new build = a new name.
+  # So they can be cached "forever"; users still get new code because index.html points at the new names.
+  location ~* \.(?:js|css|woff2?|svg|png|ico)$ {
+    add_header Cache-Control "public, max-age=31536000, immutable";
+    add_header X-Content-Type-Options nosniff always;
+    try_files $uri =404;              # a missing asset is a real 404, never index.html
+  }
+
+  # SPA fallback: /targets/6 is not a file, it's an Angular route. Serve index.html and let the router
+  # handle it. Without this, refreshing or sharing any deep link returns 404 (found in Lesson 8).
+  location / {
+    try_files $uri $uri/ /index.html;
+    # index.html must ALWAYS be revalidated, or users keep loading a stale app that references old files.
+    add_header Cache-Control "no-cache";
+    add_header X-Content-Type-Options nosniff always;
+    add_header X-Frame-Options DENY always;
+    add_header Referrer-Policy strict-origin-when-cross-origin always;
+  }
+}

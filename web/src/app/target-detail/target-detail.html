@@ -1,0 +1,44 @@
+<p><a routerLink="/">← All targets</a></p>
+
+@if (error()) {
+  <div class="banner error" role="alert">{{ error() }}</div>
+} @else if (target(); as t) {
+  <h1>{{ t.name }} <span class="badge" [attr.data-state]="t.state">{{ t.state }}</span></h1>
+  <p class="muted">{{ t.url }} · every {{ t.intervalSeconds }} s · timeout {{ t.timeoutMs }} ms ·
+    alerts after {{ t.failureThreshold }} failures, recovers after {{ t.recoveryThreshold }} successes</p>
+
+  <section class="summary">
+    <div class="stat"><span class="num">{{ uptime() ?? '–' }}{{ uptime() === null ? '' : '%' }}</span> uptime (last {{ checks().length }} checks)</div>
+    <div class="stat"><span class="num">{{ t.lastLatencyMs ?? '–' }}</span> ms latest</div>
+  </section>
+
+  <h2>Latency, oldest → newest</h2>
+  <div class="bars" aria-hidden="true">
+    @for (c of checks().slice().reverse(); track c.id) {
+      <span [class.fail]="!c.ok" [style.height.%]="(100 * c.latencyMs) / maxLatency()"
+        [title]="c.latencyMs + ' ms ' + (c.error ?? c.statusCode)"></span>
+    }
+  </div>
+
+  <h2>Recent checks</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Time</th><th>Result</th><th>Status</th><th>Latency</th><th>Error</th></tr></thead>
+      <tbody>
+        @for (c of checks(); track c.id) {
+          <tr>
+            <td>{{ c.checkedAt | date: 'HH:mm:ss' }}</td>
+            <td><span class="badge" [attr.data-state]="c.ok ? 'up' : 'down'">{{ c.ok ? 'ok' : 'fail' }}</span></td>
+            <td>{{ c.statusCode ?? '–' }}</td>
+            <td>{{ c.latencyMs }} ms</td>
+            <td>{{ c.error ?? '' }}</td>
+          </tr>
+        } @empty {
+          <tr><td colspan="5" class="muted">No checks yet.</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+} @else {
+  <p class="muted">Loading…</p>
+}

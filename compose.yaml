@@ -55,6 +55,25 @@ services:
       timeout: 3s
       retries: 3
 
+  # The dashboard: nginx serves the Angular build and proxies /api to the api service (same origin, no CORS).
+  web:
+    build: ./web
+    image: clusterwatch-web:dev
+    restart: unless-stopped
+    environment:
+      API_UPSTREAM: http://api:3000
+    ports:
+      - "8080:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      # 127.0.0.1, NOT localhost: on alpine localhost resolves to ::1 (IPv6) first, and nginx listens on IPv4 only
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
   # Misbehaving services to monitor. Demo only: runs from a bind mount, NOT baked into the app image.
   demo-targets:
     image: node:24-alpine

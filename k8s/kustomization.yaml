@@ -9,6 +9,7 @@ resources:
   - postgres.yaml
   - api.yaml
   - worker.yaml
+  - web.yaml
 
 labels:
   - pairs:
@@ -17,7 +18,9 @@ labels:
 # One place to bump the version for every Deployment.
 images:
   - name: clusterwatch
-    newTag: 0.6.2
+    newTag: 0.8.0
+  - name: clusterwatch-web
+    newTag: 0.8.0
 
 # Generators append a content hash to the name (clusterwatch-config-7h2k9...). Changing a value
 # creates a NEW ConfigMap name, the Deployment spec changes, and Kubernetes rolls the pods automatically.

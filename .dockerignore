@@ -12,3 +12,4 @@ Dockerfile*
 compose*.yaml
 k8s
 .github
+web

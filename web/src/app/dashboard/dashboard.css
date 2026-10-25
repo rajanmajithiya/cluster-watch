@@ -1,0 +1,27 @@
+.bar { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.meta { display: flex; align-items: center; gap: .75rem; color: var(--muted); }
+.summary { display: flex; gap: 1rem; flex-wrap: wrap; margin: 1rem 0; }
+.stat { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: .75rem 1rem; min-width: 8rem; }
+.stat .num { display: block; font-size: 1.6rem; font-weight: 700; }
+.stat.bad .num { color: var(--bad); }
+
+.alert { display: flex; justify-content: space-between; align-items: center; gap: 1rem;
+  background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--warn);
+  border-radius: 8px; padding: .75rem 1rem; margin-bottom: .5rem; }
+.alert[data-severity='critical'] { border-left-color: var(--bad); }
+.alert p { margin: .25rem 0; }
+/* margin, not a typed space: Angular strips whitespace between elements by default (preserveWhitespaces: false) */
+.sev { font-size: .75rem; text-transform: uppercase; color: var(--muted); margin-left: .5rem; }
+
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: 8px; }
+th, td { text-align: left; padding: .55rem .75rem; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { font-size: .8rem; text-transform: uppercase; color: var(--muted); }
+td.url { max-width: 18rem; overflow: hidden; text-overflow: ellipsis; color: var(--muted); }
+tr.disabled td { opacity: .6; }
+.actions { display: flex; gap: .4rem; }
+
+.badge { display: inline-block; min-width: 4.5rem; text-align: center; border-radius: 999px; padding: .15rem .5rem;
+  font-size: .8rem; font-weight: 600; background: var(--line); }
+.badge[data-state='up'] { background: var(--good-bg); color: var(--good); }
+.badge[data-state='down'] { background: var(--bad-bg); color: var(--bad); }

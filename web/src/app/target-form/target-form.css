@@ -1,0 +1,7 @@
+form { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: .75rem 1rem;
+  background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 1rem; }
+label { display: flex; flex-direction: column; gap: .3rem; font-size: .85rem; color: var(--muted); }
+label.wide { grid-column: span 2; }
+.full { grid-column: 1 / -1; }
+.err { color: var(--bad); }
+@media (max-width: 600px) { label.wide { grid-column: auto; } }

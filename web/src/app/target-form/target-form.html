@@ -1,0 +1,31 @@
+<form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <label>
+    Name
+    <input formControlName="name" placeholder="payments-api" />
+    @if (invalid('name')) { <small class="err">Name is required (max 100 characters).</small> }
+  </label>
+  <label class="wide">
+    URL
+    <input formControlName="url" placeholder="http://payments:8080/healthz" />
+    @if (invalid('url')) { <small class="err">Must start with http:// or https://</small> }
+  </label>
+  <label>
+    Interval (s)
+    <input type="number" formControlName="intervalSeconds" />
+    @if (invalid('intervalSeconds')) { <small class="err">5 – 3600 seconds.</small> }
+  </label>
+  <label>
+    Timeout (ms)
+    <input type="number" formControlName="timeoutMs" />
+    @if (invalid('timeoutMs')) { <small class="err">100 – 30000 ms.</small> }
+  </label>
+  @if (form.hasError('timeoutTooLong') && (form.touched || form.dirty)) {
+    <small class="err full">Timeout must be shorter than the interval, or checks pile up.</small>
+  }
+  @if (serverError()) {
+    <div class="banner error full" role="alert">{{ serverError() }}</div>
+  }
+  <div class="full">
+    <button type="submit" [disabled]="saving()">{{ saving() ? 'Adding…' : 'Add target' }}</button>
+  </div>
+</form>

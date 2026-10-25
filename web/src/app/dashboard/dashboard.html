@@ -1,0 +1,79 @@
+<header class="bar">
+  <h1>ClusterWatch</h1>
+  <div class="meta">
+    @if (updatedAt(); as at) {
+      <span>Updated {{ at | date: 'HH:mm:ss' }}</span>
+    }
+    <button type="button" (click)="refresh()">Refresh</button>
+  </div>
+</header>
+
+@if (error()) {
+  <!-- role=alert: screen readers announce it immediately -->
+  <div class="banner error" role="alert">
+    {{ error() }}. {{ updatedAt() ? 'Showing the last data we received; retrying every 5 s.' : 'Retrying every 5 s.' }}
+  </div>
+}
+@if (actionError()) {
+  <div class="banner error" role="alert">{{ actionError() }}</div>
+}
+
+<section class="summary">
+  <div class="stat"><span class="num">{{ targets().length }}</span> targets</div>
+  <div class="stat" [class.bad]="downCount() > 0"><span class="num">{{ downCount() }}</span> down</div>
+  <div class="stat" [class.bad]="alerts().length > 0"><span class="num">{{ alerts().length }}</span> open alerts</div>
+</section>
+
+<section>
+  <h2>Open alerts</h2>
+  @if (loading()) {
+    <p class="muted">Loading…</p>
+  } @else {
+    @for (alert of alerts(); track alert.id) {
+      <article class="alert" [attr.data-severity]="alert.severity">
+        <div>
+          <strong>{{ alert.pod }}</strong> <span class="sev">{{ alert.severity }}</span>
+          <p>{{ alert.reason }}</p>
+          <small class="muted">since {{ alert.createdAt | date: 'MMM d, HH:mm:ss' }}</small>
+        </div>
+        <button type="button" (click)="resolve(alert)">Resolve</button>
+      </article>
+    } @empty {
+      <p class="muted">No open alerts. All quiet.</p>
+    }
+  }
+</section>
+
+<section>
+  <h2>Targets</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>State</th><th>Name</th><th>URL</th><th>Latency</th><th>Last result</th><th></th></tr>
+      </thead>
+      <tbody>
+        <!-- track by id: Angular reuses the row DOM across refreshes instead of rebuilding the table every 5 s -->
+        @for (t of targets(); track t.id) {
+          <tr [class.disabled]="!t.enabled">
+            <td><span class="badge" [attr.data-state]="t.enabled ? t.state : 'paused'">{{ t.enabled ? t.state : 'paused' }}</span></td>
+            <td><a [routerLink]="['/targets', t.id]">{{ t.name }}</a></td>
+            <td class="url">{{ t.url }}</td>
+            <td>{{ t.lastLatencyMs === null ? '–' : t.lastLatencyMs + ' ms' }}</td>
+            <td>{{ t.lastError ?? t.lastStatusCode ?? '–' }}</td>
+            <td class="actions">
+              <button type="button" (click)="toggle(t)">{{ t.enabled ? 'Pause' : 'Resume' }}</button>
+              <button type="button" class="danger" (click)="remove(t)">Delete</button>
+            </td>
+          </tr>
+        } @empty {
+          <tr><td colspan="6" class="muted">No targets yet. Add one below.</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <h2>Add target</h2>
+  <app-target-form (created)="refresh()" />
+</section>

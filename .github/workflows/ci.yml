@@ -1,7 +1,8 @@
 # CI/CD pipeline. Runs on GitHub's servers on every push and pull request.
 #
-#   push / PR ──► test (Node + real Postgres) ──┐
-#             └─► manifests (render k8s YAML) ──┴─► image (build; push to GHCR only from main or a v* tag)
+#   push / PR ──► test (API + real Postgres) ───┐
+#             ├─► web (Angular tests + build) ──┼─► image ×2: api, web (build; push to GHCR only from main or a v* tag)
+#             └─► manifests (render k8s YAML) ──┘
 #
 name: ci
 
@@ -68,8 +69,35 @@ jobs:
       - name: Render Kubernetes manifests
         run: kubectl kustomize k8s/ > rendered.yaml && grep -c "^kind:" rendered.yaml
 
+  web:
+    runs-on: ubuntu-24.04            # pinned: "latest" changes under you (same reason as image tags)
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json   # the frontend has its own lockfile
+      - run: npm ci
+      - run: npx ng test --watch=false
+      - run: npx ng build             # type errors in templates fail here, not in the user's browser
+
   image:
-    needs: [test, manifests]         # never build an image from code that failed its tests
+    needs: [test, web, manifests]    # never build an image from code that failed its tests
+    # Matrix: the same steps run once per entry, in parallel. One definition, two images.
+    strategy:
+      matrix:
+        include:
+          - name: api
+            context: .
+            suffix: ""
+          - name: web
+            context: web
+            suffix: "-web"
     runs-on: ubuntu-24.04            # pinned: "latest" changes under you (same reason as image tags)
     timeout-minutes: 15
     permissions:
@@ -94,7 +122,7 @@ jobs:
       - id: meta
         uses: docker/metadata-action@v6
         with:
-          images: ghcr.io/${{ github.repository }}
+          images: ghcr.io/${{ github.repository }}${{ matrix.suffix }}
           tags: |
             type=sha,prefix=sha-
             type=semver,pattern={{version}}
@@ -103,9 +131,9 @@ jobs:
 
       - uses: docker/build-push-action@v7
         with:
-          context: .
+          context: ${{ matrix.context }}
           push: ${{ github.event_name != 'pull_request' }}   # PRs: build only, to prove the Dockerfile works
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha       # reuse layers from previous runs (the npm ci layer, like locally)
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=${{ matrix.name }}   # reuse layers from previous runs; one cache per image
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
