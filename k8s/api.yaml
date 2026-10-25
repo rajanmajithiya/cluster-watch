@@ -1,0 +1,109 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+spec:
+  replicas: 2                       # 2+ so one pod can die / be updated while the other serves
+  revisionHistoryLimit: 5           # how far back `kubectl rollout undo` can go
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1                   # start 1 new pod above the desired count...
+      maxUnavailable: 0             # ...and never drop below it. A broken new version can't take capacity away.
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+      # SIGTERM → app has this long to exit → SIGKILL. Must exceed preStop (5s) + SHUTDOWN_TIMEOUT_MS (20s).
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true          # kubelet refuses to start the container if it would run as root
+        seccompProfile:
+          type: RuntimeDefault      # block dangerous syscalls
+      containers:
+        - name: api
+          image: clusterwatch       # tag set in kustomization.yaml
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: clusterwatch-config
+          env:
+            - name: DB_USER
+              valueFrom: { secretKeyRef: { name: postgres-credentials, key: POSTGRES_USER } }
+            - name: DB_PASSWORD
+              valueFrom: { secretKeyRef: { name: postgres-credentials, key: POSTGRES_PASSWORD } }
+            - name: DATABASE_URL    # $(VAR) expands env vars defined ABOVE it in this list
+              value: postgres://$(DB_USER):$(DB_PASSWORD)@postgres:5432/clusterwatch
+
+          # Requests: what the scheduler reserves (and what HPA percentages are based on).
+          # Memory limit: exceed it → OOMKilled (exit 137). No CPU limit on purpose: CPU limits cause
+          # throttling latency spikes even when the node has idle CPU; requests already guarantee our share.
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { memory: 256Mi }
+
+          # The app only starts listening after the DB is reachable and migrations ran, which can take a while.
+          # startupProbe holds off liveness until then (up to 30 x 2s = 60s) so the pod isn't killed mid-boot.
+          startupProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 2
+            failureThreshold: 30
+          livenessProbe:              # failing → container RESTARTED
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:             # failing → removed from the Service, NOT restarted
+            httpGet: { path: /readyz, port: http }
+            periodSeconds: 5
+            failureThreshold: 2
+
+          lifecycle:
+            # On termination, Kubernetes sends SIGTERM and removes the pod from Service endpoints AT THE SAME TIME.
+            # kube-proxy / load balancers take a moment to notice, so traffic still arrives for a few seconds.
+            # Sleeping first means we keep serving until routing has caught up, THEN start graceful shutdown.
+            preStop:
+              sleep:
+                seconds: 5
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true   # an attacker can't drop binaries or modify the app
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+---
+# Stable virtual IP + DNS name ("api") load-balancing across all READY api pods.
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+spec:
+  selector:
+    app: api
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+# Voluntary disruptions (node drain, cluster upgrade) must leave at least 1 api pod running.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: api
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: api

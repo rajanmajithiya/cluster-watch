@@ -1,0 +1,46 @@
+# Demo only, NOT part of the product (so not in k8s/kustomization.yaml). Misbehaving services to monitor.
+# The script is mounted from a ConfigMap; create it first:
+#   kubectl create configmap demo-targets-script -n clusterwatch --from-file=scripts/fake-targets.js
+#   kubectl apply -f k8s/demo/demo-targets.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-targets
+  namespace: clusterwatch
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo-targets
+  template:
+    metadata:
+      labels:
+        app: demo-targets
+    spec:
+      containers:
+        - name: demo-targets
+          image: node:24-alpine
+          command: ["node", "/demo/fake-targets.js"]
+          ports:
+            - containerPort: 4000
+          resources:
+            requests: { cpu: 10m, memory: 32Mi }
+            limits: { memory: 64Mi }
+          volumeMounts:
+            - name: script
+              mountPath: /demo
+      volumes:
+        - name: script
+          configMap:
+            name: demo-targets-script
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-targets
+  namespace: clusterwatch
+spec:
+  selector:
+    app: demo-targets
+  ports:
+    - port: 4000

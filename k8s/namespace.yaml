@@ -1,0 +1,5 @@
+# A namespace groups our resources: easy to list, limit (ResourceQuota), secure (RBAC) and delete as one unit.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: clusterwatch

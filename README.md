@@ -19,7 +19,18 @@ Built as a production-style learning project: Node.js · Express · PostgreSQL �
           all packaged as Docker images, run on Kubernetes, built by CI
 ```
 
-## Run with Docker (recommended)
+## Run on Kubernetes
+
+```bash
+docker build -t clusterwatch:0.6.2 .
+bash scripts/k8s-load-image.sh clusterwatch:0.6.2      # Docker Desktop dev cluster only; real clusters pull from a registry
+kubectl apply -k k8s/                                  # namespace, postgres, api (2), worker (2)
+kubectl port-forward -n clusterwatch svc/api 3000:80
+```
+
+See [docs/lessons/06-kubernetes.md](docs/lessons/06-kubernetes.md) for operating and debugging it.
+
+## Run with Docker
 
 ```bash
 docker compose up -d --build --wait   # postgres + api (:3000) + 2 workers + demo-targets (:4000)

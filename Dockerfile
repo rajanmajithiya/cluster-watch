@@ -25,7 +25,9 @@ COPY --chown=node:node src ./src
 
 # Never run as root. If an attacker gets code execution in the app, they're an unprivileged user,
 # not root inside the container (one step closer to the host).
-USER node
+# NUMERIC uid (1000 = the "node" user): Kubernetes' runAsNonRoot can only verify a number; with a
+# name it refuses to start the pod (CreateContainerConfigError, found in Lesson 6).
+USER 1000
 
 EXPOSE 3000 3001
 

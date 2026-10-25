@@ -1,0 +1,42 @@
+# Deploy everything:   kubectl apply -k k8s/
+# Preview the YAML:    kubectl kustomize k8s/
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: clusterwatch
+
+resources:
+  - namespace.yaml
+  - postgres.yaml
+  - api.yaml
+  - worker.yaml
+
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: clusterwatch
+
+# One place to bump the version for every Deployment.
+images:
+  - name: clusterwatch
+    newTag: 0.6.2
+
+# Generators append a content hash to the name (clusterwatch-config-7h2k9...). Changing a value
+# creates a NEW ConfigMap name, the Deployment spec changes, and Kubernetes rolls the pods automatically.
+# A plain ConfigMap edit would leave running pods on the old values until someone restarts them.
+configMapGenerator:
+  - name: clusterwatch-config
+    literals:
+      - NODE_ENV=production
+      - SHUTDOWN_TIMEOUT_MS=20000
+      - WORKER_POLL_MS=1000
+      - WORKER_BATCH_SIZE=20
+      - CHECK_RETENTION_HOURS=24
+
+# DEV ONLY. Never commit real credentials. In production the Secret comes from a secret manager
+# (External Secrets Operator + AWS Secrets Manager / Azure Key Vault / GCP Secret Manager, or Sealed Secrets).
+# Also: a Secret is only base64-encoded, not encrypted. Anyone with `get secret` RBAC can read it.
+secretGenerator:
+  - name: postgres-credentials
+    literals:
+      - POSTGRES_USER=clusterwatch
+      - POSTGRES_PASSWORD=dev-only-password
+      - POSTGRES_DB=clusterwatch

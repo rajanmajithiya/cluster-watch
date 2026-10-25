@@ -1,0 +1,60 @@
+# Same image as the API, different command. No Service: nothing calls the worker; it pulls work from the DB.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+spec:
+  replicas: 2                       # competing consumers (FOR UPDATE SKIP LOCKED) = redundancy for free
+  selector:
+    matchLabels:
+      app: worker
+  template:
+    metadata:
+      labels:
+        app: worker
+    spec:
+      terminationGracePeriodSeconds: 45   # a tick can include a 30s-timeout check; let it finish and record
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: worker
+          image: clusterwatch
+          imagePullPolicy: IfNotPresent
+          command: ["node", "src/worker.js"]
+          ports:
+            - name: health
+              containerPort: 3001
+          envFrom:
+            - configMapRef:
+                name: clusterwatch-config
+          env:
+            - name: DB_USER
+              valueFrom: { secretKeyRef: { name: postgres-credentials, key: POSTGRES_USER } }
+            - name: DB_PASSWORD
+              valueFrom: { secretKeyRef: { name: postgres-credentials, key: POSTGRES_PASSWORD } }
+            - name: DATABASE_URL
+              value: postgres://$(DB_USER):$(DB_PASSWORD)@postgres:5432/clusterwatch
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { memory: 256Mi }
+          startupProbe:
+            httpGet: { path: /, port: health }
+            periodSeconds: 2
+            failureThreshold: 30
+          livenessProbe:              # "is the loop still turning?" (not "is the DB up?")
+            httpGet: { path: /, port: health }
+            periodSeconds: 10
+            failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}

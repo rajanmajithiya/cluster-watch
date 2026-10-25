@@ -18,14 +18,22 @@ export function createPool(databaseUrl, { max = 10 } = {}) {
   return pool;
 }
 
+// Errors that retrying can never fix: wrong password, unknown user/database, auth method rejected.
+// Found in the Lesson 6 drill: retrying these just turned a 1-second crash into a 65-second one.
+const PERMANENT_DB_ERRORS = new Set(['28P01', '28000', '3D000']);
+
 // The DB may not be up yet when we start (docker compose, K8s: start order is NOT guaranteed).
-// Retry with exponential backoff instead of crashing on the first ECONNREFUSED.
+// Retry TRANSIENT errors with exponential backoff; fail fast on PERMANENT ones so the misconfiguration
+// shows up immediately (CrashLoopBackOff + a clear log line) instead of looking like a slow DB.
 export async function waitForDatabase(pool, { attempts = 10, baseDelayMs = 500, log = console.log } = {}) {
   for (let i = 1; i <= attempts; i++) {
     try {
       await pool.query('SELECT 1');
       return;
     } catch (err) {
+      if (PERMANENT_DB_ERRORS.has(err.code)) {
+        throw new Error(`database configuration error, not retrying (${err.code}): ${err.message}`);
+      }
       if (i === attempts) throw new Error(`database unreachable after ${attempts} attempts: ${err.message}`);
       const delay = Math.min(baseDelayMs * 2 ** (i - 1), 10_000);
       log(`database not ready (${err.code || err.message}), retry ${i}/${attempts} in ${delay}ms`);
