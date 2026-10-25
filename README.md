@@ -6,6 +6,8 @@ A monitoring and alerting service for cloud workloads. It records alerts raised 
 tracks their lifecycle (open → resolved), and (from Lesson 4) actively polls registered services
 and raises alerts on its own.
 
+**New here? Start with the [hands-on runbook](docs/RUNBOOK.md)**: every command, step by step, explained.
+
 Built as a production-style learning project: Node.js · Express · PostgreSQL · Angular · Docker · Kubernetes · GitHub Actions.
 
 ## Architecture (target)

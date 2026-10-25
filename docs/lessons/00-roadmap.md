@@ -13,6 +13,6 @@ Mapped to the Motorola Solutions SWE I (Cloud Platforms & Services) job descript
 | 7 | (done) CI/CD: GitHub Actions → test → build → push image to GHCR | CI/CD, Git | Broken build blocks merge |
 | 8 | (done) Angular dashboard | AngularJS front end | CORS |
 | 9 | (done) Go live (Cloudflare tunnel) + security review + post-deploy checks | Cloud, DevOps, on-call | Env-var misconfig in prod, reading logs |
-| 10 | **Hands-on runbook**: run everything yourself, every command explained | All of it | You drive, not the mentor |
+| 10 | (done) **Hands-on runbook** ([RUNBOOK.md](../RUNBOOK.md)): run everything yourself, every command explained | All of it | You drive, not the mentor |
 
 Prerequisite for lessons 5-6: **Docker Desktop** with Kubernetes enabled (gives you `docker` and `kubectl`).
