@@ -23,7 +23,7 @@ concurrency:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04            # pinned: "latest" changes under you (same reason as image tags)
     timeout-minutes: 10              # a hung test must not burn CI minutes for 6 hours (the default)
 
     # A real Postgres for this job, as a Docker container next to the runner.
@@ -48,9 +48,9 @@ jobs:
       TEST_DATABASE_URL: postgres://clusterwatch:clusterwatch@localhost:5432/clusterwatch_test
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm                 # reuse ~/.npm between runs: faster npm ci
@@ -60,30 +60,30 @@ jobs:
       - run: npm test                # CI=true is set by GitHub → DB tests can't silently skip
 
   manifests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04            # pinned: "latest" changes under you (same reason as image tags)
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       # Catch broken YAML / kustomize errors before they reach a cluster. kubectl is preinstalled on GitHub runners.
       - name: Render Kubernetes manifests
         run: kubectl kustomize k8s/ > rendered.yaml && grep -c "^kind:" rendered.yaml
 
   image:
     needs: [test, manifests]         # never build an image from code that failed its tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04            # pinned: "latest" changes under you (same reason as image tags)
     timeout-minutes: 15
     permissions:
       contents: read
       packages: write                # needed to push to ghcr.io
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
 
       # GITHUB_TOKEN is created fresh for every run and expires when it ends: no long-lived password stored anywhere.
       - name: Log in to GitHub Container Registry
         if: github.event_name != 'pull_request'
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -92,7 +92,7 @@ jobs:
       # Decide the tags. Every image gets an immutable sha-<commit> tag, so you always know exactly which
       # code is running. A git tag v1.2.3 also produces 1.2.3 and 1.2.
       - id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ghcr.io/${{ github.repository }}
           tags: |
@@ -101,7 +101,7 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=ref,event=branch
 
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v7
         with:
           context: .
           push: ${{ github.event_name != 'pull_request' }}   # PRs: build only, to prove the Dockerfile works
