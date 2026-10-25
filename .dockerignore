@@ -1,0 +1,14 @@
+# Everything here never reaches the build context: smaller, faster builds, and no secrets
+# or local data leaking into an image that gets pushed to a registry.
+node_modules
+.pgdata
+.git
+.env
+*.log
+coverage
+docs
+test
+Dockerfile*
+compose*.yaml
+k8s
+.github

@@ -1,0 +1,68 @@
+# The whole system on one machine:  docker compose up -d --build
+# Services find each other by NAME on compose's private network: the API reaches the DB at
+# "postgres:5432". Inside a container, "localhost" means that container itself, not your laptop.
+
+x-app: &app                         # YAML anchor: shared settings for api and worker
+  build: .
+  image: clusterwatch:dev
+  restart: unless-stopped           # crashed? Docker starts it again
+  stop_grace_period: 15s            # SIGTERM, then this long before SIGKILL (default 10s)
+  environment:
+    # Dev-only credentials. In Kubernetes (Lesson 6) these come from a Secret, never from a committed file.
+    DATABASE_URL: postgres://clusterwatch:clusterwatch@postgres:5432/clusterwatch
+  depends_on:
+    postgres:
+      condition: service_healthy    # wait until pg_isready passes, not just "container started"
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: clusterwatch
+      POSTGRES_PASSWORD: clusterwatch
+      POSTGRES_DB: clusterwatch
+    volumes:
+      # Containers are disposable; volumes are not. Without this, `docker compose down` deletes your data.
+      # (postgres 18+ images keep data under /var/lib/postgresql/<major>, so mount the parent.)
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U clusterwatch -d clusterwatch"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+    ports:
+      - "5434:5432"                 # only so you can connect from the host (psql, DBeaver); 5433 is the npm dev DB
+
+  api:
+    <<: *app
+    ports:
+      - "3000:3000"
+    healthcheck:
+      # busybox wget ships with alpine; no need to install curl into the image
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/readyz"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  worker:
+    <<: *app
+    command: ["node", "src/worker.js"]
+    deploy:
+      replicas: 2                   # two competing consumers, like Lesson 4's drill
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3001/"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  # Misbehaving services to monitor. Demo only: runs from a bind mount, NOT baked into the app image.
+  demo-targets:
+    image: node:24-alpine
+    command: ["node", "/demo/fake-targets.js"]
+    volumes:
+      - ./scripts/fake-targets.js:/demo/fake-targets.js:ro
+    ports:
+      - "4000:4000"
+
+volumes:
+  pgdata:

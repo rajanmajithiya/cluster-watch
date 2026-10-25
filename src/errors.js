@@ -10,6 +10,8 @@ export class HttpError extends Error {
 
 // Network errors from Node + Postgres "admin shutdown / cannot connect now" SQLSTATE codes.
 const DEPENDENCY_DOWN_CODES = new Set(['ECONNREFUSED', 'ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND', '57P01', '57P03']);
+// node-postgres connect timeouts carry NO error code, only a message (found in the Lesson 5 compose drill).
+const PG_CONNECT_TIMEOUT = /connection timeout|timeout exceeded when trying to connect/i;
 
 export function notFoundHandler(req, res) {
   res.status(404).json({ error: `route ${req.method} ${req.path} not found` });
@@ -29,7 +31,7 @@ export function errorHandler(err, req, res, next) {
   }
   // A dependency being down is not a bug in our code: 503 tells clients and load balancers
   // "temporary, retry later", while 500 would send on-call hunting for a bug that doesn't exist.
-  if (DEPENDENCY_DOWN_CODES.has(err.code)) {
+  if (DEPENDENCY_DOWN_CODES.has(err.code) || PG_CONNECT_TIMEOUT.test(err.message)) {
     console.error(`[${req.method} ${req.path}] dependency unavailable: ${err.code}`);
     return res.status(503).set('Retry-After', '5').json({ error: 'service temporarily unavailable' });
   }

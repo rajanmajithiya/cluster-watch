@@ -19,7 +19,17 @@ Built as a production-style learning project: Node.js · Express · PostgreSQL �
           all packaged as Docker images, run on Kubernetes, built by CI
 ```
 
-## Run locally
+## Run with Docker (recommended)
+
+```bash
+docker compose up -d --build --wait   # postgres + api (:3000) + 2 workers + demo-targets (:4000)
+docker compose logs -f worker
+docker compose down                   # add -v to also delete the database volume
+```
+
+Inside compose, register targets by service name, e.g. `http://demo-targets:4000/switch`.
+
+## Run locally (without Docker)
 
 ```bash
 npm install

@@ -8,7 +8,7 @@ Mapped to the Motorola Solutions SWE I (Cloud Platforms & Services) job descript
 | 2 | (done) Production structure, validation, error handling, probes, graceful shutdown, tests | REST, troubleshooting | Malformed JSON → 500, id bug, killed mid-request |
 | 3 | (done) PostgreSQL: schema, migrations, pooled queries, SQL injection | PostgreSQL | DB not up yet when API starts; connection pool exhaustion |
 | 4 | (done) Worker: polls targets, raises/auto-resolves alerts | "automate monitoring of cloud apps" | Slow targets (timeouts), flapping, duplicate alerts with 2 workers |
-| 5 | Docker: multi-stage Dockerfile, docker compose (api + worker + db) | Containerization | Image 1GB → 150MB, PID 1 not getting SIGTERM, running as root |
+| 5 | (done) Docker: multi-stage Dockerfile, docker compose (api + worker + db) | Containerization | Image 1GB → 150MB, PID 1 not getting SIGTERM, running as root |
 | 6 | Kubernetes: Deployment, Service, ConfigMap, Secret, probes, HPA | K8s | CrashLoopBackOff, failing readiness, rolling update with zero downtime |
 | 7 | CI/CD: GitHub Actions → test → build → push image to GHCR | CI/CD, Git | Broken build blocks merge |
 | 8 | Angular dashboard | AngularJS front end | CORS |
