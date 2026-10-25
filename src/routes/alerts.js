@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { HttpError } from '../errors.js';
+import { parseId } from './params.js';
 
 const SEVERITIES = ['info', 'warning', 'critical'];
 
@@ -12,12 +13,6 @@ function validateNewAlert(body) {
   if (!SEVERITIES.includes(severity)) problems.push(`severity must be one of ${SEVERITIES.join(', ')}`);
   if (problems.length) throw new HttpError(400, 'validation failed', problems);
   return { pod: pod.trim(), reason: reason.trim(), severity };
-}
-
-function parseId(raw) {
-  const id = Number(raw);
-  if (!Number.isInteger(id) || id < 1) throw new HttpError(400, `invalid id "${raw}"`);
-  return id;
 }
 
 export function alertsRouter(store) {

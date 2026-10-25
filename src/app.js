@@ -1,10 +1,11 @@
 import express from 'express';
 import { alertsRouter } from './routes/alerts.js';
+import { targetsRouter } from './routes/targets.js';
 import { errorHandler, notFoundHandler } from './errors.js';
 
 // Builds the app WITHOUT calling listen(). Tests can spin it up on a random port,
 // and server.js owns the process concerns (port, signals, shutdown).
-export function createApp({ store }) {
+export function createApp({ store, targetStore }) {
   const app = express();
   const startedAt = new Date();
   let shuttingDown = false;
@@ -23,6 +24,7 @@ export function createApp({ store }) {
   });
 
   app.use('/api/alerts', alertsRouter(store));
+  if (targetStore) app.use('/api/targets', targetsRouter(targetStore));   // needs Postgres
 
   app.use(notFoundHandler);
   app.use(errorHandler);

@@ -25,6 +25,8 @@ Built as a production-style learning project: Node.js · Express · PostgreSQL �
 npm install
 npm run db         # local PostgreSQL on :5433 (embedded, no Docker needed)
 DATABASE_URL=postgres://clusterwatch:clusterwatch@localhost:5433/clusterwatch npm run dev
+npm run worker     # the monitoring worker (needs DATABASE_URL)
+npm run fake-targets  # misbehaving services on :4000 to monitor
 npm test           # contract tests: memory store always, Postgres store when the DB is up
 ```
 
@@ -41,6 +43,14 @@ database (exponential backoff) and applies pending `migrations/*.sql` under an a
 | GET    | `/api/alerts/:id`          | One alert                             |
 | POST   | `/api/alerts`              | Create `{ pod, reason, severity? }`   |
 | PATCH  | `/api/alerts/:id/resolve`  | Resolve (idempotent)                  |
+| GET    | `/api/targets`             | Monitored services + current health  |
+| POST   | `/api/targets`             | Register `{ name, url, intervalSeconds?, timeoutMs?, failureThreshold?, recoveryThreshold? }` |
+| GET    | `/api/targets/:id`         | One target                            |
+| PATCH  | `/api/targets/:id`         | `{ enabled }`: pause/resume monitoring |
+| DELETE | `/api/targets/:id`         | Remove (resolves its open alert)      |
+| GET    | `/api/targets/:id/checks`  | Recent check history (`?limit=`, max 500) |
+
+Target endpoints require `DATABASE_URL`.
 
 ## Configuration
 
@@ -51,5 +61,9 @@ database (exponential backoff) and applies pending `migrations/*.sql` under an a
 | `SHUTDOWN_TIMEOUT_MS` | `10000`       |
 | `DATABASE_URL`        | unset → in-memory store |
 | `DB_POOL_MAX`         | `10`          |
+| `WORKER_POLL_MS`      | `1000`        |
+| `WORKER_BATCH_SIZE`   | `20`          |
+| `WORKER_HEALTH_PORT`  | `3001`        |
+| `CHECK_RETENTION_HOURS` | `24`        |
 
 Learning notes and interview questions per lesson live in [`docs/lessons`](docs/lessons).

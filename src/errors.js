@@ -24,6 +24,9 @@ export function errorHandler(err, req, res, next) {
   if (err instanceof HttpError) {
     return res.status(err.status).json({ error: err.message, details: err.details });
   }
+  if (err.code === '23505') {    // Postgres unique_violation: the thing already exists
+    return res.status(409).json({ error: 'already exists', details: [err.detail] });
+  }
   // A dependency being down is not a bug in our code: 503 tells clients and load balancers
   // "temporary, retry later", while 500 would send on-call hunting for a bug that doesn't exist.
   if (DEPENDENCY_DOWN_CODES.has(err.code)) {

@@ -7,6 +7,13 @@ const config = {
   // No DATABASE_URL → in-memory store (handy for quick demos; data is lost on restart).
   databaseUrl: process.env.DATABASE_URL,
   dbPoolMax: Number(process.env.DB_POOL_MAX) || 10,
+
+  // worker
+  workerPollMs: Number(process.env.WORKER_POLL_MS) || 1000,
+  workerBatchSize: Number(process.env.WORKER_BATCH_SIZE) || 20,
+  workerHealthPort: Number(process.env.WORKER_HEALTH_PORT) || 3001,
+  workerStaleAfterMs: Number(process.env.WORKER_STALE_AFTER_MS) || 60_000,   // > max check timeout (30s)
+  checkRetentionHours: Number(process.env.CHECK_RETENTION_HOURS) || 24,
 };
 
 export default config;

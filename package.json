@@ -6,8 +6,10 @@
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
-    "test": "node --test",
-    "db": "node scripts/dev-db.js"
+    "test": "node --test --test-concurrency=1 \"test/**/*.test.js\"",
+    "db": "node scripts/dev-db.js",
+    "worker": "node src/worker.js",
+    "fake-targets": "node scripts/fake-targets.js"
   },
   "keywords": [],
   "author": "",

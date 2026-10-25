@@ -15,7 +15,7 @@ export function createMemoryAlertStore() {
     },
 
     async create({ pod, reason, severity }) {
-      const alert = { id: nextId++, pod, reason, severity, status: 'open', createdAt: new Date(), resolvedAt: null };
+      const alert = { id: nextId++, pod, reason, severity, status: 'open', targetId: null, createdAt: new Date(), resolvedAt: null };
       alerts.push(alert);
       return alert;
     },

@@ -1,7 +1,7 @@
 // Same interface as memoryAlertStore.js; routes don't know or care which one they get.
 // Every query is parameterized ($1, $2...): values travel separately from SQL text,
 // so input like  "x'); DROP TABLE alerts;--"  is stored as a harmless string.
-const COLUMNS = `id, pod, reason, severity, status,
+const COLUMNS = `id, pod, reason, severity, status, target_id AS "targetId",
   created_at AS "createdAt", resolved_at AS "resolvedAt"`;
 
 export function createPostgresAlertStore(pool) {

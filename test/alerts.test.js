@@ -3,27 +3,16 @@ import assert from 'node:assert/strict';
 import { createApp } from '../src/app.js';
 import { createMemoryAlertStore } from '../src/store/memoryAlertStore.js';
 import { createPostgresAlertStore } from '../src/store/postgresAlertStore.js';
-import { createPool } from '../src/db/pool.js';
-import { migrate } from '../src/db/migrate.js';
+import { pgSkip, freshPool } from './helpers.js';
 
 // Contract tests: the SAME behaviour is required from every store implementation.
-// Postgres runs against TEST_DATABASE_URL (a separate DB, so tests never touch dev data).
-const TEST_DB = process.env.TEST_DATABASE_URL ?? 'postgres://clusterwatch:clusterwatch@localhost:5433/clusterwatch_test';
-
-async function postgresAvailable() {
-  const probe = createPool(TEST_DB, { max: 1 });
-  try { await probe.query('SELECT 1'); return true; } catch { return false; } finally { await probe.end(); }
-}
-const pgUp = await postgresAvailable();
 
 const stores = {
   memory: { setup: async () => ({ store: createMemoryAlertStore(), teardown: async () => {} }) },
   postgres: {
-    skip: !pgUp && `Postgres not reachable at ${TEST_DB} (run "npm run db")`,
+    skip: pgSkip,
     setup: async () => {
-      const pool = createPool(TEST_DB, { max: 5 });
-      await migrate(pool, () => {});
-      await pool.query('TRUNCATE alerts RESTART IDENTITY');   // known clean state for every run
+      const pool = await freshPool();   // migrated, empty test database
       return { store: createPostgresAlertStore(pool), teardown: () => pool.end() };
     },
   },

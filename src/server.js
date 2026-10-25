@@ -2,22 +2,25 @@ import config from './config.js';
 import { createApp } from './app.js';
 import { createMemoryAlertStore } from './store/memoryAlertStore.js';
 import { createPostgresAlertStore } from './store/postgresAlertStore.js';
+import { createTargetStore } from './store/targetStore.js';
 import { createPool, waitForDatabase } from './db/pool.js';
 import { migrate } from './db/migrate.js';
 
 let pool;
 let store;
+let targetStore;
 if (config.databaseUrl) {
   pool = createPool(config.databaseUrl, { max: config.dbPoolMax });
   await waitForDatabase(pool);
   await migrate(pool);
   store = createPostgresAlertStore(pool);
+  targetStore = createTargetStore(pool);
 } else {
   console.warn('DATABASE_URL not set: using in-memory store, data will be lost on restart');
   store = createMemoryAlertStore();
 }
 
-const app = createApp({ store });
+const app = createApp({ store, targetStore });
 
 const server = app.listen(config.port, () => {
   console.log(`ClusterWatch (${config.env}, ${pool ? 'postgres' : 'memory'}) listening on http://localhost:${config.port}`);
