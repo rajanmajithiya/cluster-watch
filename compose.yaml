@@ -38,7 +38,9 @@ services:
       timeout: 3s
       retries: 15
     ports:
-      - "5434:5432"                 # only so you can connect from the host (psql, DBeaver); 5433 is the npm dev DB
+      # Host access for psql/DBeaver. Bound to 127.0.0.1: a bare "5434:5432" listens on every network
+      # interface, so anyone on the same Wi-Fi could try the dev password. (5433 is the npm dev DB.)
+      - "127.0.0.1:5434:5432"
 
   api:
     <<: *app

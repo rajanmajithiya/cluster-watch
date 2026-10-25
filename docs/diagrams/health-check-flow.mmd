@@ -1,0 +1,15 @@
+sequenceDiagram
+  autonumber
+  participant W as Worker (Node.js)
+  participant DB as PostgreSQL
+  participant T as Monitored service
+  W->>DB: Claim due targets (FOR UPDATE SKIP LOCKED)
+  DB-->>W: payments-api, search, ...
+  W->>T: GET /healthz (timeout 3s)
+  T-->>W: 503 Service Unavailable
+  W->>DB: BEGIN: save check, failures = 3
+  Note over W,DB: 3 failures in a row: open ONE alert
+  W->>DB: INSERT alert ON CONFLICT DO NOTHING, then COMMIT
+  W->>T: later: GET /healthz
+  T-->>W: 200 OK (2nd success in a row)
+  W->>DB: resolve the alert automatically

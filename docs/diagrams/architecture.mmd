@@ -1,0 +1,26 @@
+graph TD
+  user([Engineer's browser])
+  cf[Cloudflare Tunnel<br/>public HTTPS]
+  web[web: nginx<br/>Angular dashboard]
+  api[api: Node.js + Express<br/>REST API]
+  db[(PostgreSQL<br/>targets, checks, alerts)]
+  wk[worker x2: Node.js<br/>health-check engine]
+  svc[Monitored services<br/>APIs, websites, pods]
+
+  user -->|HTTPS| cf
+  cf -->|tunnel| web
+  web -->|/api proxy| api
+  api -->|SQL| db
+  wk -->|claim due targets,<br/>save results| db
+  wk -->|HTTP GET /healthz| svc
+
+  classDef edge fill:#fff4e5,stroke:#e08a00,color:#5a3700
+  classDef front fill:#e8f0fe,stroke:#1a73e8,color:#0b3c8c
+  classDef back fill:#e6f4ea,stroke:#188038,color:#0d4a22
+  classDef data fill:#f3e8fd,stroke:#8430ce,color:#4a1680
+  classDef ext fill:#f1f3f4,stroke:#5f6368,color:#202124
+  class cf edge
+  class web,user front
+  class api,wk back
+  class db data
+  class svc ext

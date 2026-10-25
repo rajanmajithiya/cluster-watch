@@ -1,0 +1,26 @@
+graph TD
+  dev([git push / pull request])
+  t1[test<br/>62 API tests<br/>+ real Postgres]
+  t2[web<br/>19 Angular tests<br/>+ build]
+  t3[manifests<br/>render k8s YAML]
+  img[image x2<br/>docker build]
+  reg[(GHCR registry<br/>tagged sha-commit)]
+  k8s[Kubernetes<br/>kubectl apply -k]
+
+  dev --> t1
+  dev --> t2
+  dev --> t3
+  t1 -->|green| img
+  t2 -->|green| img
+  t3 -->|green| img
+  img -->|push, main branch only| reg
+  reg -->|pull image| k8s
+
+  classDef trig fill:#f1f3f4,stroke:#5f6368,color:#202124
+  classDef check fill:#e6f4ea,stroke:#188038,color:#0d4a22
+  classDef build fill:#fff4e5,stroke:#e08a00,color:#5a3700
+  classDef ship fill:#e8f0fe,stroke:#1a73e8,color:#0b3c8c
+  class dev trig
+  class t1,t2,t3 check
+  class img build
+  class reg,k8s ship

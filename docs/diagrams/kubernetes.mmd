@@ -1,0 +1,26 @@
+graph TD
+  user([kubectl port-forward / Ingress])
+  subgraph ns[Namespace: clusterwatch]
+    web[web<br/>Service + Deployment<br/>2 nginx pods]
+    api[api<br/>Service + Deployment<br/>2 Node.js pods + probes]
+    wk[worker<br/>Deployment<br/>2 Node.js pods]
+    cfg[ConfigMap + Secrets<br/>settings, passwords]
+    pg[postgres<br/>Service + StatefulSet<br/>pod postgres-0]
+    pvc[(PersistentVolumeClaim<br/>1 GiB disk)]
+  end
+  user --> web
+  web -->|/api| api
+  api -->|SQL| pg
+  wk -->|SQL| pg
+  cfg -.->|env vars| api
+  cfg -.->|env vars| wk
+  pg --- pvc
+
+  classDef work fill:#e8f0fe,stroke:#1a73e8,color:#0b3c8c
+  classDef data fill:#f3e8fd,stroke:#8430ce,color:#4a1680
+  classDef conf fill:#e6f4ea,stroke:#188038,color:#0d4a22
+  classDef ext fill:#f1f3f4,stroke:#5f6368,color:#202124
+  class web,api,wk work
+  class pg,pvc data
+  class cfg conf
+  class user ext

@@ -1,0 +1,29 @@
+graph TD
+  code[Source code<br/>src/, package.json]
+  df[Dockerfile<br/>stage 1: npm ci<br/>stage 2: copy app]
+  img[Image: clusterwatch<br/>250 MB, alpine, non-root]
+  subgraph compose[docker compose up: one private network]
+    c3[web container<br/>nginx]
+    c1[api container<br/>node src/server.js]
+    c2[worker containers x2<br/>node src/worker.js]
+    c4[postgres container]
+  end
+  vol[(Volume pgdata<br/>survives restarts)]
+
+  code -->|docker build| df
+  df --> img
+  img -->|run as api| c1
+  img -->|run as worker| c2
+  c3 -->|api:3000| c1
+  c1 -->|postgres:5432| c4
+  c2 -->|postgres:5432| c4
+  c4 --- vol
+
+  classDef src fill:#f1f3f4,stroke:#5f6368,color:#202124
+  classDef build fill:#fff4e5,stroke:#e08a00,color:#5a3700
+  classDef run fill:#e8f0fe,stroke:#1a73e8,color:#0b3c8c
+  classDef data fill:#f3e8fd,stroke:#8430ce,color:#4a1680
+  class code src
+  class df,img build
+  class c1,c2,c3,c4 run
+  class vol data
