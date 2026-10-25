@@ -10,7 +10,7 @@ Mapped to the Motorola Solutions SWE I (Cloud Platforms & Services) job descript
 | 4 | (done) Worker: polls targets, raises/auto-resolves alerts | "automate monitoring of cloud apps" | Slow targets (timeouts), flapping, duplicate alerts with 2 workers |
 | 5 | (done) Docker: multi-stage Dockerfile, docker compose (api + worker + db) | Containerization | Image 1GB → 150MB, PID 1 not getting SIGTERM, running as root |
 | 6 | (done) Kubernetes: Deployment, Service, ConfigMap, Secret, probes, HPA | K8s | CrashLoopBackOff, failing readiness, rolling update with zero downtime |
-| 7 | CI/CD: GitHub Actions → test → build → push image to GHCR | CI/CD, Git | Broken build blocks merge |
+| 7 | (done) CI/CD: GitHub Actions → test → build → push image to GHCR | CI/CD, Git | Broken build blocks merge |
 | 8 | Angular dashboard | AngularJS front end | CORS |
 | 9 | Go live (Render/Railway) + post-deploy checks | Cloud, DevOps, on-call | Env-var misconfig in prod, reading logs |
 | 10 | **Hands-on runbook**: run everything yourself, every command explained | All of it | You drive, not the mentor |

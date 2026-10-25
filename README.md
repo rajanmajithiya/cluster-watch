@@ -1,5 +1,7 @@
 # ClusterWatch
 
+![ci](https://github.com/rajanmajithiya/cluster-watch/actions/workflows/ci.yml/badge.svg)
+
 A monitoring and alerting service for cloud workloads. It records alerts raised against pods/services,
 tracks their lifecycle (open → resolved), and (from Lesson 4) actively polls registered services
 and raises alerts on its own.
